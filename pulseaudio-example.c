@@ -130,9 +130,8 @@ static void stream_request_cb(pa_stream *s, size_t length, void *userdata) {
 
   pa_stream_get_latency(s,&usec,&neg);
   /* printf("  latency %8d us\n",(int)usec); */
-  int new_samples_consumed = samples_consumed + length;
-  static const float wave_time = 441;
 #if 0
+  int new_samples_consumed = samples_consumed + length;
   for (int k = samples_consumed; k < new_samples_consumed; k++) {
 	  double new_sample = cos(k/wave_time) * sampledata[k];
 	  //sampledata[k] = (wav_sample_t )new_sample;
