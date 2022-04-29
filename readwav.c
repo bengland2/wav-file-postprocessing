@@ -23,7 +23,6 @@
 #define STRUCT_ID_LEN 4
 #define BYTES_PER_SAMPLE 2
 #define MAX_PATHNAME_LEN 1024
-#define BLOCK_ALIGNMENT 4
 
 static const int cols_per_row = 16;
 
@@ -129,6 +128,7 @@ int readwav(char * wav_filename_p, wav_sample_t **sample_buf_out, int *sample_co
 	uint32_t sample_buf_size;
 	off_t file_offset, off;
 	uint32_t number_samples;
+	int expected_block_alignment;
 
 	/* initialize outputs */
 
@@ -181,7 +181,8 @@ int readwav(char * wav_filename_p, wav_sample_t **sample_buf_out, int *sample_co
 	if (wf_p->wf_bits_per_sample != 16) usage("only 16 bits per sample supported");
 	if (wf_p->wf_bytes_per_sec != WAV_SAMPLES_PER_SEC * BYTES_PER_SAMPLE * wf_p->wf_channels)
 		usage("inconsistent bytes per second");
-	if (wf_p->wf_block_align != BLOCK_ALIGNMENT) usage("expect block alignment of 4 bytes");
+	expected_block_alignment = BYTES_PER_SAMPLE * wf_p->wf_channels;
+	if (wf_p->wf_block_align != expected_block_alignment) usage("expect block alignment channels * 2 bytes");
 
 	extension_size = sizeof(wf_p->wf_fmtstr) + sizeof(wf_p->wf_len) + wf_p->wf_len;
 	if (wf_p->wf_len == 16) {
