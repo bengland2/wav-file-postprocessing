@@ -4,7 +4,8 @@
 BINARIES = pulseaudio-example
 #
 # change from -O3 to -g for debugging
-CFLAGS=-Wall -O3 -D_REENTRANT 
+OPT_FLAGS=-g
+CFLAGS=-Wall $(OPT_FLAGS) -D_REENTRANT 
 
 all: $(BINARIES)
 
