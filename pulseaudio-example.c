@@ -53,7 +53,9 @@ uint64_t get_time_usec(void) {
 }
 
 void process_latencies(pa_usec_t next_latency) {
+#ifdef DEBUG_LATENCIES
 	float min_l, max_l, sum, sum_squares, avg, variance, stdev;
+#endif
 	uint64_t now_usec;
 
 	if (latency_count >= LATENCY_BUFFER_ELEMENTS) {
@@ -70,6 +72,7 @@ void process_latencies(pa_usec_t next_latency) {
 	now_usec = get_time_usec();
 	if (now_usec - last_time_latencies_reported < usecs_per_report) return;
 
+#ifdef DEBUG_LATENCIES
 	min_l = 1e20; /* greater than any possible latency */
 	max_l = -1.0; /* below any possible latency */
 	sum = 0.0;
@@ -86,6 +89,7 @@ void process_latencies(pa_usec_t next_latency) {
 	stdev = sqrt(variance);
 	printf("time %lu latcount %d avg %f stdev %f min %f max %f\n", 
 			now_usec, latency_count, avg, stdev, min_l, max_l);
+#endif
 	last_time_latencies_reported = now_usec;
 	latency_count = 0;
 }
@@ -125,11 +129,12 @@ static void stream_request_cb(pa_stream *s, size_t length, void *userdata) {
   }
   if (samples_remaining < length)
 	  length = samples_remaining;
+  pa_stream_get_latency(s,&usec,&neg);
+#ifdef DEBUG
+  printf("  latency %8d us\n",(int)usec);
   printf("samples_consumed %d samples_remaining %d length %lu\n", 
 	samples_consumed, samples_remaining, length);
-
-  pa_stream_get_latency(s,&usec,&neg);
-  /* printf("  latency %8d us\n",(int)usec); */
+#endif
 #if 0
   int new_samples_consumed = samples_consumed + length;
   for (int k = samples_consumed; k < new_samples_consumed; k++) {
