@@ -7,10 +7,15 @@ But I guess pulseaudio is being phased out in favor of pipewire, have no idea ho
 
 Am planning to make a utility that just reads a .wav file, postprocesses effects onto it, then writes out a new .wav file with the results, which can then be played back using whatever tool you want to use.  Right now, effects are hardcoded inline, but want to make a pipeline of effects that can be layered upon one another like a guitar amp.  Also want to experiment with some things that aren't in a guitar amp because they are more computationally expensive.
 
-package dependencies:
+package dependencies on Fedora 35:
 
 * pulseaudio-libs
 * pulseaudio-libs-devel
+
+package dependencies on Pop!OS (Debian):
+
+* libpulse0
+* libpulse-dev
 
 To build:
 
