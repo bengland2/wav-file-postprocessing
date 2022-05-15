@@ -25,11 +25,13 @@
 #define LATENCY_BUFFER_ELEMENTS 10000
 #define SAMPLES_PER_SEC 44100
 #define FLOAT_SAMPLES_PER_SEC 44100.0
+#define MAX_VOLUME 9/10
 
 static int usecs_per_report = 20000;
 static int latency = 10000; // start latency in micro seconds
 static wav_sample_t * sampledata;
 static int sample_count;
+static int channels;
 static pa_buffer_attr bufattr;
 static int underflows = 0;
 static pa_sample_spec ss;
@@ -166,6 +168,7 @@ int main(int argc, char *argv[]) {
   pa_mainloop_api *pa_mlapi;
   pa_context *pa_ctx;
   pa_stream *playstream;
+  pa_context_state_t context_state;
   int r;
   int pa_ready = 0;
   int retval = 0;
@@ -206,7 +209,7 @@ int main(int argc, char *argv[]) {
 
   /* read in wave file into sample buffer */
 
-  rc = readwav(argv[1], &sampledata, &sample_count);
+  rc = wav_read(argv[1], &sampledata, &sample_count, &channels);
 
   /* post process it */
 
@@ -234,6 +237,8 @@ int main(int argc, char *argv[]) {
   }
 #endif
 
+#if 0
+  /* this used to insert a sinusoidal signal into the recording */
   for (int k = 0; k < sample_count ; k++) {
 	  /* make room for additional signal */
 	  sampledata[k] = (sampledata[k]*0.9);
@@ -241,7 +246,9 @@ int main(int argc, char *argv[]) {
 	  sampledata[k] += ((1<<11) * 
 			    (cos((k/2)/FLOAT_SAMPLES_PER_SEC) * 
 			     sin((k/7))));
+	  //sampledata[k] *= MAX_VOLUME;
   }
+#endif
 
   // Create a mainloop API and connection to the default server
   pa_ml = pa_mainloop_new();
@@ -256,6 +263,9 @@ int main(int argc, char *argv[]) {
   // If there's an error, the callback will set pa_ready to 2
   pa_context_set_state_callback(pa_ctx, pa_state_cb, &pa_ready);
 
+  context_state = pa_context_get_state(pa_ctx);
+  printf("context state = %x\n", (unsigned )context_state);
+
   // We can't do anything until PA is ready, so just iterate the mainloop
   // and continue
   while (pa_ready == 0) {
@@ -267,7 +277,7 @@ int main(int argc, char *argv[]) {
   }
 
   ss.rate = 44100;
-  ss.channels = 1;
+  ss.channels = channels;
   ss.format = PA_SAMPLE_S16LE;
   playstream = pa_stream_new(pa_ctx, "Playback", &ss, NULL);
   if (!playstream) {
