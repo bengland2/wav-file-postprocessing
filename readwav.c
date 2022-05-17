@@ -324,7 +324,6 @@ int wav_read(char * wav_filename_p, wav_sample_t **sample_buf_out, int *sample_c
 }
 
 
-/** NOT DEBUGGED, DO NOT USE YET **/
 /* write wav file. return OK if written. NOTOK otherwise */
 
 int wav_write(char * wav_filename_p, wav_sample_t *sample_buf_in, int sample_count, int channels)
@@ -333,8 +332,6 @@ int wav_write(char * wav_filename_p, wav_sample_t *sample_buf_in, int sample_cou
 	struct wav_header wh;
 	struct wav_fmt wf;
 	struct wav_data wd;
-	/* unused at present : struct wav_fmt_extension wfe; */
-	struct wav_fact wfct;
 	int fd;
 	int rc;
 	char *dot;
@@ -342,6 +339,7 @@ int wav_write(char * wav_filename_p, wav_sample_t *sample_buf_in, int sample_cou
 	chk_dbg();
 	if (channels != 1 && channels != 2)
 		return usage("only 1 or 2 channels supported");
+
 	/* construct temp file name in same directory, write to that, rename at end */
 
 	dot = rindex(wav_filename_p, '.');
@@ -354,6 +352,7 @@ int wav_write(char * wav_filename_p, wav_sample_t *sample_buf_in, int sample_cou
 	rc = unlink(temp_file_path);
 	if (rc != OK && errno != ENOENT)
 		return syscall_error(temp_file_path);
+	if ((wav_debug != 0) && (rc == OK)) printf("%s unlinked\n", temp_file_path);
 	fd = open(temp_file_path, O_CREAT|O_WRONLY|O_EXCL, 0644);
 	if (fd < 0)
 		return syscall_error("open for write");
@@ -362,7 +361,8 @@ int wav_write(char * wav_filename_p, wav_sample_t *sample_buf_in, int sample_cou
 
 	strncpy(wh.wh_riffstr, riffstr, STRUCT_ID_LEN);
 	strncpy(wh.wh_wavestr, wavestr, STRUCT_ID_LEN);
-	wh.wh_file_length = sizeof(wh) + sizeof(wf) + sizeof(wfct) + sizeof(wd) + (sample_count * channels * BYTES_PER_SAMPLE);
+	wh.wh_file_length = sizeof(wh) + sizeof(wf) + sizeof(wd) + (sample_count * BYTES_PER_SAMPLE) - 8;
+	if (wav_debug) printf("wh_file_length %d\n", wh.wh_file_length);
 	rc = write(fd, (uint8_t * )&wh, sizeof(wh));
 	if (rc < 0) return syscall_error("could not write wav header");
 	if (rc != sizeof(wh)) return usage("could not write complete header");
@@ -373,27 +373,18 @@ int wav_write(char * wav_filename_p, wav_sample_t *sample_buf_in, int sample_cou
 	wf.wf_len = 16;
 	wf.wf_fmt = 1;  /* FIXME */
 	wf.wf_channels = channels;
+	wf.wf_bits_per_sample = BYTES_PER_SAMPLE * BITS_PER_BYTE;
 	wf.wf_samples_per_sec = WAV_SAMPLES_PER_SEC;
-	wf.wf_bytes_per_sec = BYTES_PER_SAMPLE * wf.wf_samples_per_sec * wf.wf_channels;
-	wf.wf_block_align = 4;
-	wf.wf_bits_per_sample = 16;
+	wf.wf_bytes_per_sec = wf.wf_bits_per_sample * wf.wf_samples_per_sec * wf.wf_channels / BITS_PER_BYTE;
+	wf.wf_block_align = wf.wf_bits_per_sample * wf.wf_channels / BITS_PER_BYTE;
 	rc = write(fd ,(uint8_t * )&wf, sizeof(wf));
 	if (rc < 0) return syscall_error("could not write wav format");
 	if (rc != sizeof(wf)) return usage("could not write complete format");
 
-	/* initialize fact struct and write it */
-
-	strncpy(wfct.wfct_factstr, factstr, STRUCT_ID_LEN);
-	wfct.wfct_chunk_size = 4;
-	wfct.wfct_number_samples = sample_count;
-	rc = write(fd ,(uint8_t * )&wfct, sizeof(wfct));
-	if (rc < 0) return syscall_error("could not write fact struct");
-	if (rc != sizeof(wfct)) return usage("could not write complete fact struct");
-
 	/* initialize data struct and write it */
 
 	strncpy(wd.wd_datastr, datastr, STRUCT_ID_LEN);
-	wd.wd_chunk_size = sample_count * wf.wf_channels * BYTES_PER_SAMPLE;
+	wd.wd_chunk_size = sample_count * BYTES_PER_SAMPLE;
 	rc = write(fd ,(uint8_t * )&wd, sizeof(wd));
 	if (rc < 0) return syscall_error("could not write data header struct");
 	if (rc != sizeof(wd)) return usage("could not write complete data header struct");
@@ -410,6 +401,7 @@ int wav_write(char * wav_filename_p, wav_sample_t *sample_buf_in, int sample_cou
 
 	rc = close(fd);
 	if (rc < 0) return syscall_error("close written file");
+	if (wav_debug) printf("renaming %s to %s\n", temp_file_path, wav_filename_p);
 	rc = rename(temp_file_path, wav_filename_p);
 	if (rc < 0) return syscall_error("rename to final filename");
 
