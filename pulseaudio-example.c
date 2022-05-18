@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <string.h>
 #include <pulse/pulseaudio.h>
 #include <math.h>
@@ -41,6 +42,9 @@ static pa_usec_t latencies[LATENCY_BUFFER_ELEMENTS] = {0};
 static int latency_count = 0;
 static int latency_count_multiple = 10;
 static uint64_t last_time_latencies_reported = 0;
+
+static const char *debug_env_var = "PA_DEBUG";
+static int pa_debug = -1;
 
 uint64_t get_time_usec(void) {
 	struct timeval now;
@@ -125,27 +129,21 @@ static void stream_request_cb(pa_stream *s, size_t length, void *userdata) {
   int neg;
   static int samples_consumed = 0;
   int samples_remaining = sample_count - samples_consumed;
-  if (samples_remaining == 0) {
-	pa_mainloop_quit(pa_ml, 0);
-  	return;
-  }
   if (samples_remaining < length)
 	  length = samples_remaining;
   pa_stream_get_latency(s,&usec,&neg);
-#ifdef DEBUG
-  printf("  latency %8d us\n",(int)usec);
-  printf("samples_consumed %d samples_remaining %d length %lu\n", 
-	samples_consumed, samples_remaining, length);
-#endif
-#if 0
-  int new_samples_consumed = samples_consumed + length;
-  for (int k = samples_consumed; k < new_samples_consumed; k++) {
-	  double new_sample = cos(k/wave_time) * sampledata[k];
-	  //sampledata[k] = (wav_sample_t )new_sample;
+  if (pa_debug) {
+    printf("  latency %8d us\n",(int)usec);
+    printf("samples_consumed %d samples_remaining %d length %lu\n", 
+	   samples_consumed, samples_remaining, length);
   }
-#endif
-  pa_stream_write(s, &sampledata[samples_consumed], length*2, NULL, 0LL, PA_SEEK_RELATIVE);
+  pa_stream_write(s, &sampledata[samples_consumed], length*channels, NULL, 0LL, PA_SEEK_RELATIVE);
   samples_consumed += length;
+  samples_remaining = sample_count - samples_consumed;
+  if (samples_remaining == 0) {
+	if (pa_debug) printf("no samples remaining\n");
+	pa_mainloop_quit(pa_ml, 0);
+  }
   process_latencies(usec);
 }
 
@@ -182,6 +180,8 @@ int main(int argc, char *argv[]) {
   float coeff = 5000;
   char * coeff_str;
 
+  pa_debug = getenv(debug_env_var) != NULL;
+
   nice_change_str = getenv("NICE_CHANGE");
   if (nice_change_str) {
 	  nice_change = atoi(nice_change_str);
@@ -197,15 +197,7 @@ int main(int argc, char *argv[]) {
   if (coeff_str) {
 	  coeff = atof(coeff_str);
   }
-  printf("frequency coefficient = %f\n", coeff);
-
-#if 0
-  // Create some data to play
-  for (a=0; a<sizeof(sampledata)/2; a++) {
-    amp = cos(coeff*(double)a/44100.0);
-    sampledata[a] = amp * 32000.0;
-  }
-#endif
+  if (pa_debug) printf("frequency coefficient = %f\n", coeff);
 
   /* read in wave file into sample buffer */
 
@@ -243,9 +235,10 @@ int main(int argc, char *argv[]) {
 	  /* make room for additional signal */
 	  sampledata[k] = (sampledata[k]*0.9);
 	  /* insert weird sinusoidal thingy */
-	  sampledata[k] += ((1<<11) * 
+	  sampledata[k] += ((1<<8) * 
 			    (cos((k/2)/FLOAT_SAMPLES_PER_SEC) * 
 			     sin((k/7))));
+	  assert(sampledata[k] < 1<<15);
 	  //sampledata[k] *= MAX_VOLUME;
   }
 #endif
@@ -264,7 +257,7 @@ int main(int argc, char *argv[]) {
   pa_context_set_state_callback(pa_ctx, pa_state_cb, &pa_ready);
 
   context_state = pa_context_get_state(pa_ctx);
-  printf("context state = %x\n", (unsigned )context_state);
+  if (pa_debug) printf("context state = %x\n", (unsigned )context_state);
 
   // We can't do anything until PA is ready, so just iterate the mainloop
   // and continue
@@ -282,6 +275,8 @@ int main(int argc, char *argv[]) {
   playstream = pa_stream_new(pa_ctx, "Playback", &ss, NULL);
   if (!playstream) {
     printf("pa_stream_new failed\n");
+    retval = -15;
+    goto exit;
   }
   pa_stream_set_write_callback(playstream, stream_request_cb, NULL);
   pa_stream_set_underflow_callback(playstream, stream_underflow_cb, NULL);
