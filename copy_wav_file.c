@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
-#include "readwav.h"
+#include "wav_file_access.h"
 
 static char out_path[1024];
 

@@ -1,5 +1,5 @@
-#ifndef _readwav_h_
-# define _readwav_h_ 1
+#ifndef _test_wav_access_h_
+# define _test_wav_access_h_ 1
 
 #include <stdint.h>
 

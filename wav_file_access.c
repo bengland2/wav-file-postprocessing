@@ -1,5 +1,4 @@
 /* parse canonical WAVE format */
-/* to compile: cc -Wall -g -o readwav readwav.c */
 /* see Canon.html for wav format details */
 /* originally from http://www.lightlink.com/tjweber/StripWav/Canon.html */
 /* also see http://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html */
@@ -13,7 +12,7 @@
 #include <stdint.h>
 #include <fcntl.h>
 #include <sys/stat.h>
-#include "readwav.h"
+#include "wav_file_access.h"
 
 #define OK 	0
 #define NOTOK 	1
@@ -99,7 +98,6 @@ static char * infostr = "INFO";
 
 static int usage(char * msg) {
 	printf("ERROR: %s\n", msg);
-	printf("usage: readwav myfile.wav\n");
 	return(NOTOK);
 }
 
@@ -359,8 +357,8 @@ int wav_write(char * wav_filename_p, wav_sample_t *sample_buf_in, int sample_cou
 
 	/* initialize .wav header and write it */
 
-	strncpy(wh.wh_riffstr, riffstr, STRUCT_ID_LEN);
-	strncpy(wh.wh_wavestr, wavestr, STRUCT_ID_LEN);
+	memcpy(wh.wh_riffstr, riffstr, STRUCT_ID_LEN);
+	memcpy(wh.wh_wavestr, wavestr, STRUCT_ID_LEN);
 	wh.wh_file_length = sizeof(wh) + sizeof(wf) + sizeof(wd) + (sample_count * BYTES_PER_SAMPLE) - 8;
 	if (wav_debug) printf("wh_file_length %d\n", wh.wh_file_length);
 	rc = write(fd, (uint8_t * )&wh, sizeof(wh));
@@ -369,7 +367,7 @@ int wav_write(char * wav_filename_p, wav_sample_t *sample_buf_in, int sample_cou
 
 	/* initialize format header and write it */
 
-	strncpy(wf.wf_fmtstr, fmtstr, STRUCT_ID_LEN);
+	memcpy(wf.wf_fmtstr, fmtstr, STRUCT_ID_LEN);
 	wf.wf_len = 16;
 	wf.wf_fmt = 1;  /* FIXME */
 	wf.wf_channels = channels;
@@ -383,7 +381,7 @@ int wav_write(char * wav_filename_p, wav_sample_t *sample_buf_in, int sample_cou
 
 	/* initialize data struct and write it */
 
-	strncpy(wd.wd_datastr, datastr, STRUCT_ID_LEN);
+	memcpy(wd.wd_datastr, datastr, STRUCT_ID_LEN);
 	wd.wd_chunk_size = sample_count * BYTES_PER_SAMPLE;
 	rc = write(fd ,(uint8_t * )&wd, sizeof(wd));
 	if (rc < 0) return syscall_error("could not write data header struct");

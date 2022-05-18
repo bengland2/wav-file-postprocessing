@@ -13,14 +13,14 @@ echo original wav file
 pacat $wav_file
 sleep 1
 
-./test_readwav $wav_file
+./copy_wav_file $wav_file
 echo copied to $new_file
 pacat $new_file
 sleep 1
 
 # verify what we write is playable and parsable
 
-./test_readwav $new_file
+./copy_wav_file $new_file
 echo copied $new_file to $newer_file
 pacat $newer_file
 rm -f $new_file $newer_file

@@ -16,7 +16,7 @@
 #include <math.h>
 #include <sys/time.h>
 #include <stdint.h>
-#include "readwav.h"
+#include "wav_file_access.h"
 
 /* process exit status */
 #define OK 	0
