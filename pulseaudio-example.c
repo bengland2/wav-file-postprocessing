@@ -27,6 +27,7 @@
 #define SAMPLES_PER_SEC 44100
 #define FLOAT_SAMPLES_PER_SEC 44100.0
 #define MAX_VOLUME 9/10
+#define BYTES_PER_SAMPLE 2
 
 static int usecs_per_report = 20000;
 static int latency = 10000; // start latency in micro seconds
@@ -129,16 +130,18 @@ static void stream_request_cb(pa_stream *s, size_t length, void *userdata) {
   int neg;
   static int samples_consumed = 0;
   int samples_remaining = sample_count - samples_consumed;
-  if (samples_remaining < length)
-	  length = samples_remaining;
+
+  int samples_requested = length / BYTES_PER_SAMPLE;
+  if (samples_remaining < samples_requested)
+	  samples_requested = samples_remaining;
   pa_stream_get_latency(s,&usec,&neg);
   if (pa_debug) {
     printf("  latency %8d us\n",(int)usec);
     printf("samples_consumed %d samples_remaining %d length %lu\n", 
 	   samples_consumed, samples_remaining, length);
   }
-  pa_stream_write(s, &sampledata[samples_consumed], length*channels, NULL, 0LL, PA_SEEK_RELATIVE);
-  samples_consumed += length;
+  pa_stream_write(s, &sampledata[samples_consumed], samples_requested*BYTES_PER_SAMPLE, NULL, 0LL, PA_SEEK_RELATIVE);
+  samples_consumed += samples_requested;
   samples_remaining = sample_count - samples_consumed;
   if (samples_remaining == 0) {
 	if (pa_debug) printf("no samples remaining\n");
