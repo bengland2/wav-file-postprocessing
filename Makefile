@@ -1,7 +1,7 @@
 # this makefile requires that Fedora 35 libao package be installed, or equivalent in other distros
 #
 
-BINARIES = pulseaudio-example copy_wav_file pacat-simple
+BINARIES = pulseaudio-example copy_wav_file pacat-simple wav_transform
 #
 # change from -O3 to -g for debugging
 OPT_FLAGS=-O3
@@ -15,6 +15,9 @@ pulseaudio-example: pulseaudio-example.c wav_file_access.h wav_file_access.o
 
 copy_wav_file: copy_wav_file.c wav_file_access.h wav_file_access.o
 	$(CC) $(CFLAGS) -o $@ wav_file_access.o $< 
+
+wav_transform: wav_transform.c wav_file_access.h wav_file_access.o
+	$(CC) $(CFLAGS) -o $@ wav_file_access.o $<  -lm
 
 # worked on Fedora 35
 #pulseaudio-example: pulseaudio-example.c wav_file_access.h wav_file_access.o
