@@ -18,16 +18,7 @@
 #include <stdint.h>
 #include "wav_file_access.h"
 
-/* process exit status */
-#define OK 	0
-#define NOTOK 	1
-
-#define MICROSEC_PER_SEC 1000000
 #define LATENCY_BUFFER_ELEMENTS 10000
-#define SAMPLES_PER_SEC 44100
-#define FLOAT_SAMPLES_PER_SEC 44100.0
-#define MAX_VOLUME 9/10
-#define BYTES_PER_SAMPLE 2
 
 static int usecs_per_report = 20000;
 static int latency = 10000; // start latency in micro seconds

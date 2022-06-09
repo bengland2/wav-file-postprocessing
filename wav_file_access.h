@@ -3,6 +3,21 @@
 
 #include <stdint.h>
 
+#ifndef PI
+#define PI 3.14159
+#endif
+
+/* process exit status */
+#define OK 	0
+#define NOTOK 	1
+
+#define MICROSEC_PER_SEC 1000000
+#define SAMPLES_PER_SEC 44100
+#define FLOAT_SAMPLES_PER_SEC 44100.0
+//#define MAX_VOLUME 9/10
+#define BYTES_PER_SAMPLE 2
+#define MAX_VOLUME (1<<15)
+
 /* this function only supports 16-bit PCM samples at this time */
 typedef int16_t wav_sample_t;
 
