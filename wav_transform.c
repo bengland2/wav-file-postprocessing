@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 	float freq = 440.;
 	float modulating_freq = 1. ;
 	float fractional_amplitude = 0.2;
-	float left_right;
+	float left_right = 0.0;
 	int opt;
 
 	opterr = 0;
