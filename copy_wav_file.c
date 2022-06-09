@@ -13,6 +13,10 @@ int main(int argc, char **argv) {
 	int sample_count;
         int chans;
 
+	if (argc < 3) {
+		printf("usage: copy_wav_file file1.wav file2.wav\n");
+		exit(NOTOK);
+	}
 	rc = wav_read(argv[1], &sample_buf, &sample_count, &chans);
 	if (rc) return rc;
 	printf("sample count %d, channels %d\n", sample_count, chans);
